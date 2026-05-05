@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2023 Eurotech and/or its affiliates and others
+ * Copyright (c) 2017, 2026 Eurotech and/or its affiliates and others
  * 
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -30,7 +30,6 @@ import org.eclipse.kura.KuraException;
 import org.eclipse.kura.cloudconnection.listener.CloudConnectionListener;
 import org.eclipse.kura.cloudconnection.listener.CloudDeliveryListener;
 import org.eclipse.kura.cloudconnection.message.KuraMessage;
-import org.eclipse.kura.core.testutil.TestUtil;
 import org.eclipse.kura.message.KuraPayload;
 import org.eclipse.kura.message.KuraPosition;
 import org.eclipse.kura.position.NmeaPosition;
@@ -64,7 +63,7 @@ public class CloudPublisherTest {
     private Map<String, Object> kuraMessageProps;
 
     @Test
-    public void testOnWireReceive() throws InvalidSyntaxException, NoSuchFieldException, KuraException {
+    public void testOnWireReceive() throws InvalidSyntaxException {
         // test publishing a normal message with topic replacement
         givenCloudPublisher();
         givenDefaultProperties();
@@ -84,7 +83,7 @@ public class CloudPublisherTest {
     }
 
     @Test
-    public void testOnWireReceiveSetBody() throws InvalidSyntaxException, NoSuchFieldException, KuraException {
+    public void testOnWireReceiveSetBody() throws InvalidSyntaxException {
         // test publishing a normal message with topic replacement
         givenCloudPublisher();
         givenDefaultProperties();
@@ -105,8 +104,7 @@ public class CloudPublisherTest {
     }
 
     @Test
-    public void testOnWireReceiveSetBodyRemoveFromMetrics()
-            throws InvalidSyntaxException, NoSuchFieldException, KuraException {
+    public void testOnWireReceiveSetBodyRemoveFromMetrics() throws InvalidSyntaxException {
         // test publishing a normal message with topic replacement
         givenCloudPublisher();
         givenDefaultProperties();
@@ -128,7 +126,7 @@ public class CloudPublisherTest {
 
     @Test
     public void testOnWireReceiveWithBasicPosition()
-            throws InvalidSyntaxException, NoSuchFieldException, KuraException {
+            throws InvalidSyntaxException, NoSuchFieldException {
         // test publishing a normal message with topic replacement and position
         givenCloudPublisher();
         givenDefaultProperties();
@@ -150,7 +148,7 @@ public class CloudPublisherTest {
     }
 
     @Test
-    public void testOnWireReceiveWithFullPosition() throws InvalidSyntaxException, NoSuchFieldException, KuraException {
+    public void testOnWireReceiveWithFullPosition() throws InvalidSyntaxException, NoSuchFieldException {
         // test publishing a normal message with topic replacement and position
         givenCloudPublisher();
         givenDefaultProperties();
@@ -172,7 +170,45 @@ public class CloudPublisherTest {
     }
 
     @Test
-    public void testTopicReplacementOnWireReceive() throws InvalidSyntaxException, NoSuchFieldException, KuraException {
+    public void testOnWireReceiveWithBasicPositionWithNoPositionService() throws InvalidSyntaxException {
+        givenCloudPublisher();
+        givenDefaultProperties();
+        givenUpdatedProperties("publish.position", "basic");
+        givenActivatedComponentProperties();
+        givenDefaultRecordProp();
+
+        whenOnWireReceive();
+        whenKuraMessageReceived();
+
+        thenPayloadHasNullBody();
+        thenPayloadHasNullPosition();
+        thenTotalMetricReceived(2);
+        thenCheckDefaultMetricReceived();
+        thenTotalKuraMessagePropsReceived(2);
+        thenCheckDefaultKuraMessageProps();
+    }
+
+    @Test
+    public void testOnWireReceiveWithFullPositionWithNoPositionService() throws InvalidSyntaxException {
+        givenCloudPublisher();
+        givenDefaultProperties();
+        givenUpdatedProperties("publish.position", "full");
+        givenActivatedComponentProperties();
+        givenDefaultRecordProp();
+
+        whenOnWireReceive();
+        whenKuraMessageReceived();
+
+        thenPayloadHasNullBody();
+        thenPayloadHasNullPosition();
+        thenTotalMetricReceived(2);
+        thenCheckDefaultMetricReceived();
+        thenTotalKuraMessagePropsReceived(2);
+        thenCheckDefaultKuraMessageProps();
+    }
+
+    @Test
+    public void testTopicReplacementOnWireReceive() throws InvalidSyntaxException {
         // test publishing a normal message with topic replacement
         givenCloudPublisher();
         givenDefaultProperties();
@@ -193,6 +229,29 @@ public class CloudPublisherTest {
         thenCheckSemanticTopic();
         thenTotalKuraMessagePropsReceived(4);
         thenCheckDefaultKuraMessageProps();
+    }
+
+    @Test
+    public void testPayloadHasNotPositionIfPositionServiceIsUnset()
+            throws InvalidSyntaxException, NoSuchFieldException {
+        givenCloudPublisher();
+        givenDefaultProperties();
+        givenUpdatedProperties("publish.position", "full");
+        givenActivatedComponentProperties();
+        givenPositionServiceMock();
+        givenDefaultRecordProp();
+
+        whenSetPositionServiceMock();
+        whenOnWireReceive();
+        whenKuraMessageReceived();
+
+        thenCheckFullPosition();
+
+        whenUnsetPositionServiceMock();
+        whenOnWireReceive();
+        whenKuraMessageReceived();
+
+        thenPayloadHasNullPosition();
     }
 
     /*
@@ -311,7 +370,11 @@ public class CloudPublisherTest {
     private void whenSetPositionServiceMock() throws NoSuchFieldException {
         when(this.positionServiceMock.getNmeaPosition())
                 .thenReturn(new NmeaPosition(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-        TestUtil.setFieldValue(this.cp, "positionService", this.positionServiceMock);
+        this.cp.setPositionService(this.positionServiceMock);
+    }
+
+    private void whenUnsetPositionServiceMock() {
+        this.cp.unsetPositionService(this.positionServiceMock);
     }
 
     private void whenKuraMessageReceived() {
