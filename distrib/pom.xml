@@ -41,11 +41,6 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.kura</groupId>
-            <artifactId>org.eclipse.kura.asset.provider</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.kura</groupId>
             <artifactId>org.eclipse.kura.rest.asset.provider</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -105,7 +100,6 @@
         <jar.equinox.wireadmin.name>org.eclipse.equinox.wireadmin-${equinox.wireadmin.version}.jar</jar.equinox.wireadmin.name>
         <jar.asset.cloudlet.provider.name>org.eclipse.kura.asset.cloudlet.provider-${project.version}.jar</jar.asset.cloudlet.provider.name>
         <jar.asset.helper.provider.name>org.eclipse.kura.asset.helper.provider-${project.version}.jar</jar.asset.helper.provider.name>
-        <jar.asset.provider.name>org.eclipse.kura.asset.provider-${project.version}.jar</jar.asset.provider.name>
         <jar.rest.asset.provider.name>org.eclipse.kura.rest.asset.provider-${project.version}.jar</jar.rest.asset.provider.name>
         <jar.wire.ai.component.provider.name>org.eclipse.kura.wire.ai.component.provider-${project.version}.jar</jar.wire.ai.component.provider.name>
         <jar.wire.component.join.provider.name>org.eclipse.kura.wire.component.join.provider-${project.version}.jar</jar.wire.component.join.provider.name>
@@ -312,17 +306,6 @@
                                 </data>
                                 <data>
                                     <src>${project.build.directory}/plugins/${jar.asset.helper.provider.name}</src>
-                                    <type>file</type>
-                                    <mapper>
-                                        <type>perm</type>
-                                        <prefix>${addon.installation.dir.4s}</prefix>
-                                        <user>kurad</user>
-                                        <group>kurad</group>
-                                        <filemode>600</filemode>
-                                    </mapper>
-                                </data>
-                                <data>
-                                    <src>${project.build.directory}/plugins/${jar.asset.provider.name}</src>
                                     <type>file</type>
                                     <mapper>
                                         <type>perm</type>

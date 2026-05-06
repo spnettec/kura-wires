@@ -414,7 +414,6 @@
     <modules>
         <module>org.eclipse.kura.asset.cloudlet.provider</module>
         <module>org.eclipse.kura.asset.helper.provider</module>
-        <module>org.eclipse.kura.asset.provider</module>
         <module>org.eclipse.kura.rest.asset.provider</module>
         <module>org.eclipse.kura.rest.wire.provider</module>
         <module>org.eclipse.kura.wire.ai.component.provider</module>
