@@ -84,6 +84,8 @@ public final class ConditionalComponent extends EngineProvider
 
         this.conditionalOptions = new ConditionalComponentOptions(properties);
 
+        setLanguage(this.conditionalOptions.getLanguage());
+
         initEngine();
 
         this.booleanExpression = this.conditionalOptions.getBooleanExpression();

@@ -89,6 +89,11 @@
             <artifactId>org.eclipse.kura.wire.script.tools</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.kura</groupId>
+            <artifactId>org.eclipse.kura.script.provider</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <properties>
@@ -109,6 +114,7 @@
         <jar.wire.helper.provider.name>org.eclipse.kura.wire.helper.provider-${project.version}.jar</jar.wire.helper.provider.name>
         <jar.wire.provider.name>org.eclipse.kura.wire.provider-${project.version}.jar</jar.wire.provider.name>
         <jar.wire.script.tools.name>org.eclipse.kura.wire.script.tools-${project.version}.jar</jar.wire.script.tools.name>
+        <jar.script.provider.name>org.eclipse.kura.script.provider-1.0.0-SNAPSHOT.jar</jar.script.provider.name>
         <jar.rest.wire.provider.name>org.eclipse.kura.rest.wire.provider-${project.version}.jar</jar.rest.wire.provider.name>
 
         <deb.architecture>all</deb.architecture>
@@ -416,6 +422,17 @@
                                 </data>
                                 <data>
                                     <src>${project.build.directory}/plugins/${jar.wire.script.tools.name}</src>
+                                    <type>file</type>
+                                    <mapper>
+                                        <type>perm</type>
+                                        <prefix>${addon.installation.dir.4s}</prefix>
+                                        <user>kurad</user>
+                                        <group>kurad</group>
+                                        <filemode>600</filemode>
+                                    </mapper>
+                                </data>
+                                <data>
+                                    <src>${project.build.directory}/plugins/${jar.script.provider.name}</src>
                                     <type>file</type>
                                     <mapper>
                                         <type>perm</type>

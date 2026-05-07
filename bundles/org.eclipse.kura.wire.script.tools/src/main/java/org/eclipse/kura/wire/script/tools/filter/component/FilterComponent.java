@@ -76,6 +76,8 @@ public class FilterComponent extends EngineProvider implements WireEmitter, Wire
 
         this.sourceScript = options.getScriptSource();
 
+        setLanguage(options.getLanguage());
+
         if (options.isScriptContextDrop() || !isEngineInit()) {
             initEngine();
         }

@@ -26,6 +26,18 @@
         default="input.getRecords()[0].getProperties().TIMER !== null &amp;&amp; Math.floor(input.getRecords()[0].getProperties().TIMER.getValue() / 1000) % 2 == 0"
         description="%conditionDesc">
         </AD>
+
+        <AD id="language"
+            name="%language"
+            type="String"
+            cardinality="0"
+            required="true"
+            default="js"
+            description="%languageDesc">
+            <Option label="%js" value="js" />
+            <Option label="%python" value="python" />
+            <Option label="%wasm" value="wasm" />
+        </AD>
     </OCD>
 
     <Designate pid="org.eclipse.kura.wire.script.tools.ConditionalComponent" factoryPid="org.eclipse.kura.wire.script.tools.ConditionalComponent">

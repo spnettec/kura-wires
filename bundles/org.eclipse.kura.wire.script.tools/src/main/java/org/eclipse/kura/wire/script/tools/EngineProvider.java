@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright (c) 2022 Eurotech and/or its affiliates and others
- * 
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
- * which is available at https://www.eclipse.org/legal/epl-2.0/
- * 
+ * which is available at https://www.eclipse.org/legal/epl-2.0
+ *
  * SPDX-License-Identifier: EPL-2.0
- * 
+ *
  * Contributors:
  *  Eurotech
  *******************************************************************************/
@@ -33,21 +33,31 @@ import org.slf4j.LoggerFactory;
 public abstract class EngineProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(EngineProvider.class);
+
     public static final String LANGUAGE_ID = "js";
 
+    private String languageId = LANGUAGE_ID;
     private Optional<Context> engine = Optional.empty();
     private Value bindings;
     private Optional<Value> currentResult;
+
+    public void setLanguage(String languageId) {
+        this.languageId = languageId == null || languageId.isEmpty() ? LANGUAGE_ID : languageId;
+    }
+
+    public String getLanguageId() {
+        return languageId;
+    }
 
     public void initEngine() {
         closeEngine();
 
         try {
-            this.engine = Optional.of(Context.newBuilder(LANGUAGE_ID).option("engine.WarnInterpreterOnly", "false")
+            this.engine = Optional.of(Context.newBuilder(languageId).option("engine.WarnInterpreterOnly", "false")
                     .allowHostAccess(HostAccess.ALL).build());
             createDefaultBindings();
         } catch (Exception e) {
-            logger.error("Failed to initialize engine for language '" + LANGUAGE_ID + "'.", e);
+            logger.error("Failed to initialize engine for language '{}'.", languageId, e);
             this.engine = Optional.empty();
         }
     }
@@ -82,7 +92,7 @@ public abstract class EngineProvider {
         this.currentResult = Optional.empty();
         try {
             if (this.engine.isPresent()) {
-                Source source = Source.newBuilder(LANGUAGE_ID, sourceCode, null).build();
+                Source source = Source.newBuilder(languageId, sourceCode, null).build();
                 this.currentResult = Optional.of(this.engine.get().eval(source));
             } else {
                 logger.warn("Engine is not loaded!");
@@ -113,7 +123,7 @@ public abstract class EngineProvider {
     }
 
     private void createDefaultBindings() {
-        this.bindings = this.engine.get().getBindings(LANGUAGE_ID);
+        this.bindings = this.engine.get().getBindings(languageId);
 
         this.bindings.removeMember("exit");
         this.bindings.removeMember("quit");
