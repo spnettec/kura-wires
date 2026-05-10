@@ -97,9 +97,9 @@
     </dependencies>
 
     <properties>
-        <addon.installation.dir.3s>/opt/eclipse/kura/plugins/3s</addon.installation.dir.3s>
-        <addon.installation.dir.4s>/opt/eclipse/kura/plugins/4s</addon.installation.dir.4s>
-        <addon.installation.dir.6s>/opt/eclipse/kura/plugins/6s</addon.installation.dir.6s>
+        <addon.installation.dir.3s>/opt/eclipse/kura/siblings/wires/3s</addon.installation.dir.3s>
+        <addon.installation.dir.4s>/opt/eclipse/kura/siblings/wires/4s</addon.installation.dir.4s>
+        <addon.installation.dir.6s>/opt/eclipse/kura/siblings/wires/6s</addon.installation.dir.6s>
 
         <equinox.wireadmin.version>1.0.800</equinox.wireadmin.version>
         <jar.equinox.wireadmin.name>org.eclipse.equinox.wireadmin-${equinox.wireadmin.version}.jar</jar.equinox.wireadmin.name>
