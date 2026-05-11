@@ -25,19 +25,6 @@
     <packaging>pom</packaging>
     <name>Kura Wires PDE Dependencies</name>
 
-    <distributionManagement>
-        <repository>
-            <id>repo.eclipse.org</id>
-            <name>Kura Repository - Releases</name>
-            <url>https://repo.eclipse.org/content/repositories/kura-releases/</url>
-        </repository>
-        <snapshotRepository>
-            <id>repo.eclipse.org</id>
-            <name>Kura Repository - Snapshots</name>
-            <url>https://repo.eclipse.org/content/repositories/kura-snapshots/</url>
-        </snapshotRepository>
-    </distributionManagement>
-
     <properties>
         <equinox.wireadmin.version>1.0.800</equinox.wireadmin.version>
     </properties>
