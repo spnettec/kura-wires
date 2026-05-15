@@ -10,7 +10,7 @@
  * Contributors:
  *  Eurotech
  *******************************************************************************/
-package org.eclipse.kura.internal.wire.asset;
+package org.eclipse.kura.internal.wire.asset.component;
 
 import java.util.HashMap;
 import java.util.List;

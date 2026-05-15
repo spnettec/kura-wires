@@ -21,7 +21,7 @@
 	immediate="true"
 	enabled="true"
 	configuration-policy="require">
-   <implementation class="org.eclipse.kura.internal.wire.asset.WireAsset"/>
+   <implementation class="org.eclipse.kura.internal.wire.asset.component.WireAsset"/>
    <property name="service.pid" type="String" value="org.eclipse.kura.wire.WireAsset"/>
    <property name="kura.ui.service.hide" type="Boolean" value="true"/>
    <property name="kura.ui.toolsSorted" type="Integer" value="950"/>

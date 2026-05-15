@@ -10,14 +10,14 @@
  * Contributors:
  *  Eurotech
  *******************************************************************************/
+package org.eclipse.kura.internal.wire.asset.component;
 
-package org.eclipse.kura.internal.wire.asset;
+import java.util.Map;
 
 import org.eclipse.kura.channel.ChannelRecord;
+import org.eclipse.kura.type.TypedValue;
 
-interface TimestampFiller {
+public interface RecordFiller {
 
-    public void processRecord(final ChannelRecord record);
-
-    public void fillSingleTimestamp();
+    void fill(Map<String, TypedValue<?>> envelopeProperties, ChannelRecord record);
 }

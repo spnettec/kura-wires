@@ -11,7 +11,7 @@
  *  Eurotech
  *  Amit Kumar Mondal
  *******************************************************************************/
-package org.eclipse.kura.internal.wire.asset;
+package org.eclipse.kura.internal.wire.asset.component;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
@@ -40,6 +40,11 @@ import org.eclipse.kura.core.configuration.metatype.Tad;
 import org.eclipse.kura.core.configuration.metatype.Tocd;
 import org.eclipse.kura.driver.Driver.ConnectionException;
 import org.eclipse.kura.driver.PreparedRead;
+import org.eclipse.kura.internal.wire.asset.TimestampMode;
+import org.eclipse.kura.internal.wire.asset.WireAssetChannelDescriptor;
+import org.eclipse.kura.internal.wire.asset.WireAssetConstants;
+import org.eclipse.kura.internal.wire.asset.WireAssetOCD;
+import org.eclipse.kura.internal.wire.asset.WireAssetOptions;
 import org.eclipse.kura.type.TypedValue;
 import org.eclipse.kura.type.TypedValues;
 import org.eclipse.kura.util.collection.CollectionUtil;

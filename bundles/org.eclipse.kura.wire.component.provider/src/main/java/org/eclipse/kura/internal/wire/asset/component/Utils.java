@@ -10,7 +10,7 @@
  * Contributors:
  *  Eurotech
  *******************************************************************************/
-package org.eclipse.kura.internal.wire.asset;
+package org.eclipse.kura.internal.wire.asset.component;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.kura.channel.ChannelRecord;
+import org.eclipse.kura.internal.wire.asset.TimestampFiller;
+import org.eclipse.kura.internal.wire.asset.WireAssetOptions;
 import org.eclipse.kura.type.TypedValue;
 
 final class Utils {

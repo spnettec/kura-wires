@@ -10,7 +10,7 @@
  * Contributors:
  *  Eurotech
  *******************************************************************************/
-package org.eclipse.kura.internal.wire.asset;
+package org.eclipse.kura.internal.wire.asset.component;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -23,6 +23,9 @@ import java.util.function.Consumer;
 import org.eclipse.kura.channel.ChannelFlag;
 import org.eclipse.kura.channel.ChannelRecord;
 import org.eclipse.kura.channel.ChannelStatus;
+import org.eclipse.kura.internal.wire.asset.TimestampMode;
+import org.eclipse.kura.internal.wire.asset.WireAssetConstants;
+import org.eclipse.kura.internal.wire.asset.WireAssetOptions;
 import org.eclipse.kura.type.StringValue;
 import org.eclipse.kura.type.TypedValue;
 import org.eclipse.kura.type.TypedValues;
