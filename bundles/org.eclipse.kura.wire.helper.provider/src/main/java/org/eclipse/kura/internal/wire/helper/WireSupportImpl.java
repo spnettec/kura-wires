@@ -33,6 +33,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import org.eclipse.kura.wire.WireComponent;
@@ -69,6 +70,19 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
                 t.setDaemon(true);
                 return t;
             });
+
+    // Throttle window for the cancel-after-timeout warning. With a 100ms wire tick
+    // and a 1s task budget, every failed driver cycle would log a warning; rate-limit
+    // it to once per CANCEL_LOG_THROTTLE_NANOS, including a suppressed-count tail.
+    private static final long CANCEL_LOG_THROTTLE_NANOS = TimeUnit.SECONDS.toNanos(5);
+
+    // Per-instance throttle state for the cancel warning.
+    private final AtomicLong cancelLogLastNanos = new AtomicLong(Long.MIN_VALUE);
+    private final AtomicLong cancelLogSuppressed = new AtomicLong();
+
+    // Per-instance throttle state for the "pool saturated" rejection warning.
+    private final AtomicLong dropLogLastNanos = new AtomicLong(Long.MIN_VALUE);
+    private final AtomicLong dropLogSuppressed = new AtomicLong();
 
     private final List<ReceiverPort> receiverPorts;
 
@@ -116,12 +130,30 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
 
     private ExecutorService createExecutorService(String kuraServicePid) {
         int cores = Runtime.getRuntime().availableProcessors();
-        // Replaces DiscardOldestPolicy (silent drop) with a logging handler so saturation
-        // becomes observable. Drop semantics are preserved — task is not run.
-        final RejectedExecutionHandler dropAndLog = (r, executor) -> logger.warn(
-                "Wire envelope dropped for {} — pool saturated (active={}, pool={}/{}, completed={})",
-                kuraServicePid, executor.getActiveCount(), executor.getPoolSize(),
-                executor.getMaximumPoolSize(), executor.getCompletedTaskCount());
+        // Replaces DiscardOldestPolicy (silent drop) with a throttled logging handler so
+        // saturation becomes observable. Drop semantics preserved — task is not run.
+        // Same throttle window as the cancel warning to keep failure-storm output bounded.
+        final RejectedExecutionHandler dropAndLog = (r, executor) -> {
+            final long now = System.nanoTime();
+            final long last = this.dropLogLastNanos.get();
+            if (now - last >= CANCEL_LOG_THROTTLE_NANOS
+                    && this.dropLogLastNanos.compareAndSet(last, now)) {
+                final long suppressed = this.dropLogSuppressed.getAndSet(0);
+                if (suppressed > 0) {
+                    logger.warn(
+                            "Wire envelope dropped for {} — pool saturated (active={}, pool={}/{}, completed={}) — {} similar suppressed in throttle window",
+                            kuraServicePid, executor.getActiveCount(), executor.getPoolSize(),
+                            executor.getMaximumPoolSize(), executor.getCompletedTaskCount(), suppressed);
+                } else {
+                    logger.warn(
+                            "Wire envelope dropped for {} — pool saturated (active={}, pool={}/{}, completed={})",
+                            kuraServicePid, executor.getActiveCount(), executor.getPoolSize(),
+                            executor.getMaximumPoolSize(), executor.getCompletedTaskCount());
+                }
+            } else {
+                this.dropLogSuppressed.incrementAndGet();
+            }
+        };
         return new ThreadPoolExecutor(1, cores * 2, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(),
                 new WireDefaultThreadFactory(kuraServicePid), dropAndLog);
     }
@@ -137,8 +169,22 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
         if (timeoutMs > 0) {
             TIMEOUT_SCHEDULER.schedule(() -> {
                 if (!taskFuture.isDone() && taskFuture.cancel(true)) {
-                    logger.warn("Wire receive task for {} cancelled after {} ms (driver/consumer slow?)",
-                            this.kuraServicePid, timeoutMs);
+                    final long now = System.nanoTime();
+                    final long last = this.cancelLogLastNanos.get();
+                    if (now - last >= CANCEL_LOG_THROTTLE_NANOS
+                            && this.cancelLogLastNanos.compareAndSet(last, now)) {
+                        final long suppressed = this.cancelLogSuppressed.getAndSet(0);
+                        if (suppressed > 0) {
+                            logger.warn(
+                                    "Wire receive task for {} cancelled after {} ms (driver/consumer slow?) — {} similar suppressed in throttle window",
+                                    this.kuraServicePid, timeoutMs, suppressed);
+                        } else {
+                            logger.warn("Wire receive task for {} cancelled after {} ms (driver/consumer slow?)",
+                                    this.kuraServicePid, timeoutMs);
+                        }
+                    } else {
+                        this.cancelLogSuppressed.incrementAndGet();
+                    }
                 }
             }, timeoutMs, TimeUnit.MILLISECONDS);
         }
