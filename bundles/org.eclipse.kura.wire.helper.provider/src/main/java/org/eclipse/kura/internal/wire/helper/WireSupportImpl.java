@@ -24,6 +24,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -50,6 +54,21 @@ import org.slf4j.LoggerFactory;
 final class WireSupportImpl implements WireSupport, MultiportWireSupport {
 
     private static final Logger logger = LoggerFactory.getLogger(WireSupportImpl.class);
+
+    // System-property tunable (default 1000ms; <=0 disables timeout enforcement).
+    // Caps how long a single onWireReceive task may run before its future is cancelled.
+    // Without this, a slow driver read (e.g. PLC connect timeout 5–10s) saturates the
+    // per-component pool up to maxPoolSize, after which RejectedExecutionHandler kicks in.
+    private static final long TASK_TIMEOUT_MS = Long.getLong("kura.wire.task.timeout.ms", 1000L);
+
+    // Shared watchdog. One thread schedules cancel(true) calls for tasks that exceed
+    // TASK_TIMEOUT_MS. Kept static so a single watchdog serves every WireSupport instance.
+    private static final ScheduledExecutorService TIMEOUT_SCHEDULER = Executors
+            .newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "Wire-Task-Timeout-Watchdog");
+                t.setDaemon(true);
+                return t;
+            });
 
     private final List<ReceiverPort> receiverPorts;
 
@@ -97,8 +116,33 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
 
     private ExecutorService createExecutorService(String kuraServicePid) {
         int cores = Runtime.getRuntime().availableProcessors();
+        // Replaces DiscardOldestPolicy (silent drop) with a logging handler so saturation
+        // becomes observable. Drop semantics are preserved — task is not run.
+        final RejectedExecutionHandler dropAndLog = (r, executor) -> logger.warn(
+                "Wire envelope dropped for {} — pool saturated (active={}, pool={}/{}, completed={})",
+                kuraServicePid, executor.getActiveCount(), executor.getPoolSize(),
+                executor.getMaximumPoolSize(), executor.getCompletedTaskCount());
         return new ThreadPoolExecutor(1, cores * 2, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(),
-                new WireDefaultThreadFactory(kuraServicePid), new ThreadPoolExecutor.DiscardOldestPolicy());
+                new WireDefaultThreadFactory(kuraServicePid), dropAndLog);
+    }
+
+    /**
+     * Submit a wire-receive task and schedule a watchdog that cancels it after
+     * {@link #TASK_TIMEOUT_MS} milliseconds. Prevents one blocking task (slow driver
+     * connect, stalled downstream consumer) from saturating the pool.
+     */
+    private Future<?> submitWithTimeout(Runnable task) {
+        final Future<?> taskFuture = receiverExecutor.submit(task);
+        final long timeoutMs = TASK_TIMEOUT_MS;
+        if (timeoutMs > 0) {
+            TIMEOUT_SCHEDULER.schedule(() -> {
+                if (!taskFuture.isDone() && taskFuture.cancel(true)) {
+                    logger.warn("Wire receive task for {} cancelled after {} ms (driver/consumer slow?)",
+                            this.kuraServicePid, timeoutMs);
+                }
+            }, timeoutMs, TimeUnit.MILLISECONDS);
+        }
+        return taskFuture;
     }
 
     private void clearReceiverPorts() {
@@ -199,7 +243,7 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
         }
         final Object envelopeValue = value;
         if (wireComponent instanceof WireReceiver) {
-            receiverExecutor.execute(() -> {
+            submitWithTimeout(() -> {
                 try {
                     ((WireReceiver) WireSupportImpl.this.wireComponent).onWireReceive(envelopeValue);
                 } catch (Exception e) {
@@ -207,7 +251,7 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
                 }
             });
         } else {
-            receiverExecutor.execute(() -> {
+            submitWithTimeout(() -> {
                 try {
                     final ReceiverPortImpl receiverPort = WireSupportImpl.this.receiverPortByWire.get(wire);
                     receiverPort.consumer.accept(envelopeValue);
