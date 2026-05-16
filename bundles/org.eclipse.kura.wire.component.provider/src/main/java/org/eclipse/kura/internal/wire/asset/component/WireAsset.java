@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -109,6 +111,12 @@ public final class WireAsset extends BaseAsset implements WireEmitter, WireRecei
 
     private static final Logger logger = LogManager.getLogger(WireAsset.class);
 
+    // Read/write ERROR with a stack trace is a real-outage signal worth keeping,
+    // but a 100ms-tick wire chain against a downed PLC turns it into ~10/s with
+    // a 30-line stack each — drowning every other log. Same first-event throttle
+    // as in WireSupportImpl and ConnectionContainer.
+    private static final long ERROR_LOG_THROTTLE_NANOS = TimeUnit.SECONDS.toNanos(30);
+
     private volatile WireHelperService wireHelperService;
 
     private WireSupport wireSupport;
@@ -118,6 +126,11 @@ public final class WireAsset extends BaseAsset implements WireEmitter, WireRecei
     private WireAssetOptions options = new WireAssetOptions();
 
     private PreparedEmit preparedEmit;
+
+    private final AtomicLong readErrorLogLastNanos = new AtomicLong(0L);
+    private final AtomicLong readErrorLogSuppressed = new AtomicLong(0L);
+    private final AtomicLong writeErrorLogLastNanos = new AtomicLong(0L);
+    private final AtomicLong writeErrorLogSuppressed = new AtomicLong(0L);
 
     /**
      * Binds the Wire Helper Service.
@@ -264,11 +277,29 @@ public final class WireAsset extends BaseAsset implements WireEmitter, WireRecei
             try {
                 emitChannelRecords(readAllChannels());
             } catch (final Exception e) {
-                logger.error("Error while performing read from the Wire Asset: {}", getKuraServicePid(), e);
+                logReadError(e);
                 if (this.options.emitErrors() && this.options.emitConnectionErrors()) {
                     emitAssetError(e);
                 }
             }
+        }
+    }
+
+    private void logReadError(Exception e) {
+        long now = System.nanoTime();
+        long last = readErrorLogLastNanos.get();
+        if (now - last >= ERROR_LOG_THROTTLE_NANOS && readErrorLogLastNanos.compareAndSet(last, now)) {
+            long suppressed = readErrorLogSuppressed.getAndSet(0L);
+            if (suppressed == 0L) {
+                logger.error("Error while performing read from the Wire Asset: {}", getKuraServicePid(), e);
+            } else {
+                logger.error("Error while performing read from the Wire Asset: {} (suppressed {} similar in last {}s)",
+                        getKuraServicePid(), suppressed,
+                        TimeUnit.NANOSECONDS.toSeconds(ERROR_LOG_THROTTLE_NANOS), e);
+            }
+        } else {
+            readErrorLogSuppressed.incrementAndGet();
+            logger.debug("Error while performing read from the Wire Asset: {}", getKuraServicePid(), e);
         }
     }
 
@@ -387,7 +418,25 @@ public final class WireAsset extends BaseAsset implements WireEmitter, WireRecei
         try {
             write(channelRecordsToWrite);
         } catch (final Exception e) {
-            logger.error("Error while performing write from the Wire Asset: {}", getKuraServicePid(), e);
+            logWriteError(e);
+        }
+    }
+
+    private void logWriteError(Exception e) {
+        long now = System.nanoTime();
+        long last = writeErrorLogLastNanos.get();
+        if (now - last >= ERROR_LOG_THROTTLE_NANOS && writeErrorLogLastNanos.compareAndSet(last, now)) {
+            long suppressed = writeErrorLogSuppressed.getAndSet(0L);
+            if (suppressed == 0L) {
+                logger.error("Error while performing write from the Wire Asset: {}", getKuraServicePid(), e);
+            } else {
+                logger.error("Error while performing write from the Wire Asset: {} (suppressed {} similar in last {}s)",
+                        getKuraServicePid(), suppressed,
+                        TimeUnit.NANOSECONDS.toSeconds(ERROR_LOG_THROTTLE_NANOS), e);
+            }
+        } else {
+            writeErrorLogSuppressed.incrementAndGet();
+            logger.debug("Error while performing write from the Wire Asset: {}", getKuraServicePid(), e);
         }
     }
 
