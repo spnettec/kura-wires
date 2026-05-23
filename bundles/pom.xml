@@ -41,7 +41,7 @@
         <keystore.type>JKS</keystore.type>
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
         <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
-        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.release>21</maven.compiler.release>
         <equinox.wireadmin.version>3.0.700</equinox.wireadmin.version>
     </properties>
 
