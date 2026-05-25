@@ -40,5 +40,6 @@
         <module>kura-wires-pde-deps</module>
         <module>bundles</module>
         <module>distrib</module>
+        <module>dp</module>
     </modules>
 </project>
