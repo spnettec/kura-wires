@@ -41,10 +41,14 @@ final class Utils {
             final RecordFiller filler = fillerIter.next();
 
             filler.fill(wireRecordProperties, record);
-            timestampFiller.processRecord(record);
+            if (RecordFillers.shouldEmitMetadata(record, options)) {
+                timestampFiller.processRecord(record);
+            }
         }
 
-        timestampFiller.fillSingleTimestamp();
+        if (!wireRecordProperties.isEmpty()) {
+            timestampFiller.fillSingleTimestamp();
+        }
 
         return wireRecordProperties;
     }
@@ -57,10 +61,14 @@ final class Utils {
 
         for (final ChannelRecord record : channelRecords) {
             RecordFillers.create(record, options).fill(wireRecordProperties, record);
-            timestampFiller.processRecord(record);
+            if (RecordFillers.shouldEmitMetadata(record, options)) {
+                timestampFiller.processRecord(record);
+            }
         }
 
-        timestampFiller.fillSingleTimestamp();
+        if (!wireRecordProperties.isEmpty()) {
+            timestampFiller.fillSingleTimestamp();
+        }
 
         return wireRecordProperties;
     }

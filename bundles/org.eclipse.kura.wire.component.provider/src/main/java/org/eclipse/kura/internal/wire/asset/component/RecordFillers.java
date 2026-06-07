@@ -73,12 +73,16 @@ public final class RecordFillers {
         }
 
         if (isPerChannel) {
-            consumer.accept(new TimestampFiller(record));
+            consumer.accept(new TimestampFiller(record, options));
         }
 
         if (emitErrors) {
             consumer.accept(new ErrorFiller(record));
         }
+    }
+
+    static boolean shouldEmitMetadata(final ChannelRecord record, final WireAssetOptions options) {
+        return options.emitErrors() || record.getChannelStatus().getChannelFlag() == ChannelFlag.SUCCESS;
     }
 
     private static class ValueFiller implements RecordFiller {
@@ -139,13 +143,18 @@ public final class RecordFillers {
 
         private final String timestampKey;
 
-        public TimestampFiller(final ChannelRecord record) {
+        private final WireAssetOptions options;
+
+        public TimestampFiller(final ChannelRecord record, final WireAssetOptions options) {
             this.timestampKey = record.getChannelName() + WireAssetConstants.PROP_SUFFIX_TIMESTAMP.value();
+            this.options = options;
         }
 
         @Override
         public void fill(Map<String, TypedValue<?>> envelopeProperties, ChannelRecord record) {
-            envelopeProperties.put(this.timestampKey, TypedValues.newLongValue(record.getTimestamp()));
+            if (shouldEmitMetadata(record, this.options)) {
+                envelopeProperties.put(this.timestampKey, TypedValues.newLongValue(record.getTimestamp()));
+            }
         }
     }
 
