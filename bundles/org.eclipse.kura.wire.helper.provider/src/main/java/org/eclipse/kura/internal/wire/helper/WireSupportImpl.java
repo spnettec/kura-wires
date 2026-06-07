@@ -23,17 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import org.eclipse.kura.wire.WireComponent;
@@ -56,34 +45,6 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
 
     private static final Logger logger = LoggerFactory.getLogger(WireSupportImpl.class);
 
-    // System-property tunable (default 1000ms; <=0 disables timeout enforcement).
-    // Caps how long a single onWireReceive task may run before its future is cancelled.
-    // Without this, a slow driver read (e.g. PLC connect timeout 5–10s) saturates the
-    // per-component pool up to maxPoolSize, after which RejectedExecutionHandler kicks in.
-    private static final long TASK_TIMEOUT_MS = Long.getLong("kura.wire.task.timeout.ms", 1000L);
-
-    // Shared watchdog. One thread schedules cancel(true) calls for tasks that exceed
-    // TASK_TIMEOUT_MS. Kept static so a single watchdog serves every WireSupport instance.
-    private static final ScheduledExecutorService TIMEOUT_SCHEDULER = Executors
-            .newSingleThreadScheduledExecutor(r -> {
-                Thread t = new Thread(r, "Wire-Task-Timeout-Watchdog");
-                t.setDaemon(true);
-                return t;
-            });
-
-    // Throttle window for the cancel-after-timeout warning. With a 100ms wire tick
-    // and a 1s task budget, every failed driver cycle would log a warning; rate-limit
-    // it to once per CANCEL_LOG_THROTTLE_NANOS, including a suppressed-count tail.
-    private static final long CANCEL_LOG_THROTTLE_NANOS = TimeUnit.SECONDS.toNanos(5);
-
-    // Per-instance throttle state for the cancel warning.
-    private final AtomicLong cancelLogLastNanos = new AtomicLong(Long.MIN_VALUE);
-    private final AtomicLong cancelLogSuppressed = new AtomicLong();
-
-    // Per-instance throttle state for the "pool saturated" rejection warning.
-    private final AtomicLong dropLogLastNanos = new AtomicLong(Long.MIN_VALUE);
-    private final AtomicLong dropLogSuppressed = new AtomicLong();
-
     private final List<ReceiverPort> receiverPorts;
 
     private final List<EmitterPort> emitterPorts;
@@ -91,11 +52,7 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
     private final WireComponent wireComponent;
 
     private final String servicePid;
-    private final String kuraServicePid;
-
     private final boolean isNulltoEnvenlope;
-
-    private ExecutorService receiverExecutor;
 
     private final Map<Wire, ReceiverPortImpl> receiverPortByWire;
 
@@ -105,9 +62,7 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
         requireNonNull(servicePid, "service pid cannot be null");
         requireNonNull(kuraServicePid, "kura service pid cannot be null");
         this.servicePid = servicePid;
-        this.kuraServicePid = kuraServicePid;
         this.wireComponent = wireComponent;
-        receiverExecutor = createExecutorService(kuraServicePid);
         if (inputPortCount < 0) {
             throw new IllegalArgumentException("Input port count must be greater or equal than zero");
         }
@@ -126,69 +81,6 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
         for (int i = 0; i < outputPortCount; i++) {
             emitterPorts.add(new EmitterPortImpl());
         }
-    }
-
-    private ExecutorService createExecutorService(String kuraServicePid) {
-        int cores = Runtime.getRuntime().availableProcessors();
-        // Replaces DiscardOldestPolicy (silent drop) with a throttled logging handler so
-        // saturation becomes observable. Drop semantics preserved — task is not run.
-        // Same throttle window as the cancel warning to keep failure-storm output bounded.
-        final RejectedExecutionHandler dropAndLog = (r, executor) -> {
-            final long now = System.nanoTime();
-            final long last = this.dropLogLastNanos.get();
-            if (now - last >= CANCEL_LOG_THROTTLE_NANOS
-                    && this.dropLogLastNanos.compareAndSet(last, now)) {
-                final long suppressed = this.dropLogSuppressed.getAndSet(0);
-                if (suppressed > 0) {
-                    logger.warn(
-                            "Wire envelope dropped for {} — pool saturated (active={}, pool={}/{}, completed={}) — {} similar suppressed in throttle window",
-                            kuraServicePid, executor.getActiveCount(), executor.getPoolSize(),
-                            executor.getMaximumPoolSize(), executor.getCompletedTaskCount(), suppressed);
-                } else {
-                    logger.warn(
-                            "Wire envelope dropped for {} — pool saturated (active={}, pool={}/{}, completed={})",
-                            kuraServicePid, executor.getActiveCount(), executor.getPoolSize(),
-                            executor.getMaximumPoolSize(), executor.getCompletedTaskCount());
-                }
-            } else {
-                this.dropLogSuppressed.incrementAndGet();
-            }
-        };
-        return new ThreadPoolExecutor(1, cores * 2, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(),
-                new WireDefaultThreadFactory(kuraServicePid), dropAndLog);
-    }
-
-    /**
-     * Submit a wire-receive task and schedule a watchdog that cancels it after
-     * {@link #TASK_TIMEOUT_MS} milliseconds. Prevents one blocking task (slow driver
-     * connect, stalled downstream consumer) from saturating the pool.
-     */
-    private Future<?> submitWithTimeout(Runnable task) {
-        final Future<?> taskFuture = receiverExecutor.submit(task);
-        final long timeoutMs = TASK_TIMEOUT_MS;
-        if (timeoutMs > 0) {
-            TIMEOUT_SCHEDULER.schedule(() -> {
-                if (!taskFuture.isDone() && taskFuture.cancel(true)) {
-                    final long now = System.nanoTime();
-                    final long last = this.cancelLogLastNanos.get();
-                    if (now - last >= CANCEL_LOG_THROTTLE_NANOS
-                            && this.cancelLogLastNanos.compareAndSet(last, now)) {
-                        final long suppressed = this.cancelLogSuppressed.getAndSet(0);
-                        if (suppressed > 0) {
-                            logger.warn(
-                                    "Wire receive task for {} cancelled after {} ms (driver/consumer slow?) — {} similar suppressed in throttle window",
-                                    this.kuraServicePid, timeoutMs, suppressed);
-                        } else {
-                            logger.warn("Wire receive task for {} cancelled after {} ms (driver/consumer slow?)",
-                                    this.kuraServicePid, timeoutMs);
-                        }
-                    } else {
-                        this.cancelLogSuppressed.incrementAndGet();
-                    }
-                }
-            }, timeoutMs, TimeUnit.MILLISECONDS);
-        }
-        return taskFuture;
     }
 
     private void clearReceiverPorts() {
@@ -262,11 +154,7 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
     public synchronized void producersConnected(final Wire[] wires) {
         clearReceiverPorts();
         if (wires == null) {
-            receiverExecutor.shutdownNow();
             return;
-        }
-        if (receiverExecutor.isShutdown()) {
-            receiverExecutor = createExecutorService(this.kuraServicePid);
         }
         for (Wire w : wires) {
             try {
@@ -289,22 +177,10 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
         }
         final Object envelopeValue = value;
         if (wireComponent instanceof WireReceiver) {
-            submitWithTimeout(() -> {
-                try {
-                    ((WireReceiver) WireSupportImpl.this.wireComponent).onWireReceive(envelopeValue);
-                } catch (Exception e) {
-                    logger.error("Excute receive massage error", e);
-                }
-            });
+            ((WireReceiver) this.wireComponent).onWireReceive(envelopeValue);
         } else {
-            submitWithTimeout(() -> {
-                try {
-                    final ReceiverPortImpl receiverPort = WireSupportImpl.this.receiverPortByWire.get(wire);
-                    receiverPort.consumer.accept(envelopeValue);
-                } catch (Exception e) {
-                    logger.error("Excute consumer massage error", e);
-                }
-            });
+            final ReceiverPortImpl receiverPort = this.receiverPortByWire.get(wire);
+            receiverPort.consumer.accept(envelopeValue);
         }
     }
 
@@ -355,27 +231,4 @@ final class WireSupportImpl implements WireSupport, MultiportWireSupport {
         return new WireEnvelope(servicePid, records);
     }
 
-    static class WireDefaultThreadFactory implements ThreadFactory {
-
-        private static final AtomicInteger POOL_NUMBER = new AtomicInteger(1);
-        private final ThreadGroup group;
-        private final AtomicInteger threadNumber = new AtomicInteger(1);
-        private final String namePrefix;
-
-        WireDefaultThreadFactory(String name) {
-            group = Thread.currentThread().getThreadGroup();
-            namePrefix = "WirePool-" + POOL_NUMBER.getAndIncrement() + "-" + name + "-";
-        }
-
-        public Thread newThread(Runnable r) {
-            Thread t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement(), 0);
-            if (t.isDaemon()) {
-                t.setDaemon(false);
-            }
-            if (t.getPriority() != Thread.NORM_PRIORITY) {
-                t.setPriority(Thread.NORM_PRIORITY);
-            }
-            return t;
-        }
-    }
 }
