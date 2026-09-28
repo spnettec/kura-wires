@@ -19,3 +19,4 @@ Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=17))"
 Bundle-ActivationPolicy: lazy
 Service-Component: OSGI-INF/*.xml
 Bundle-ClassPath: .
+Bundle-RequiredExecutionEnvironment: JavaSE-21
