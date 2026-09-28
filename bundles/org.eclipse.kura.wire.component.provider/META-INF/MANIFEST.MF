@@ -47,4 +47,3 @@ Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=17))"
 Bundle-ActivationPolicy: lazy
 Service-Component: OSGI-INF/*.xml
 Automatic-Module-Name: org.eclipse.kura.wire.component.provider
-Bundle-RequiredExecutionEnvironment: JavaSE-21

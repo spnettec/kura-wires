@@ -25,4 +25,3 @@ Import-Package: com.eclipsesource.json;version="0.9.5",
  org.slf4j;version="[1.7,3)"
 Bundle-ActivationPolicy: lazy
 Service-Component: OSGI-INF/*.xml
-Bundle-RequiredExecutionEnvironment: JavaSE-21

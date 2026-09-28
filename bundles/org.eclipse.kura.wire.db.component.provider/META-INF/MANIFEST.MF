@@ -29,4 +29,3 @@ Service-Component: OSGI-INF/*.xml
 Export-Package: org.eclipse.kura.internal.wire.db.common;version="1.0.0",
  org.eclipse.kura.internal.wire.db.filter;version="1.0.0",
  org.eclipse.kura.internal.wire.db.store;version="1.0.0"
-Bundle-RequiredExecutionEnvironment: JavaSE-21
