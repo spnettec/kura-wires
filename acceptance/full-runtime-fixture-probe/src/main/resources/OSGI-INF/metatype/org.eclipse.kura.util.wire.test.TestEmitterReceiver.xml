@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Kura resolves this resource by its historical factory PID. -->
+<MetaData xmlns="http://www.osgi.org/xmlns/metatype/v1.2.0">
+  <OCD id="org.eclipse.kura.util.wire.test.TestEmitterReceiver" name="Test Emitter Receiver"/>
+  <Designate pid="org.eclipse.kura.util.wire.test.TestEmitterReceiver" factoryPid="org.eclipse.kura.util.wire.test.TestEmitterReceiver">
+    <Object ocdref="org.eclipse.kura.util.wire.test.TestEmitterReceiver"/>
+  </Designate>
+</MetaData>
