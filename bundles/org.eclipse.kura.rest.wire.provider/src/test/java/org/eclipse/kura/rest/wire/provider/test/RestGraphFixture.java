@@ -43,7 +43,7 @@ import org.osgi.service.wireadmin.*;
 import com.eclipsesource.json.*;
 
 /** Configuration and registry boundaries are test doubles; endpoint, DTO and graph logic are real. */
-abstract class RestGraphFixture {
+public abstract class RestGraphFixture {
     private static final String GRAPH = "org.eclipse.kura.wire.graph.WireGraphService";
     private static final String EMITTER = "org.eclipse.kura.util.wire.test.TestEmitterReceiver";
     private static final String DRIVER = "org.eclipse.kura.util.test.driver.ChannelDescriptorTestDriver";
@@ -61,11 +61,12 @@ abstract class RestGraphFixture {
     private final JsonMarshallUnmarshallImpl json = new JsonMarshallUnmarshallImpl();
     private final Graph graph = new Graph();
     private JaxRsRequestHandlerProxy proxy;
+    protected WireRestService endpoint;
     private KuraMessage response;
     private ServiceReference<?> scrReference;
 
     @BeforeEach
-    void startFixture() throws Exception {
+    protected void startFixture() throws Exception {
         when(this.context.createFilter(anyString())).thenAnswer(i -> FrameworkUtil.createFilter(i.getArgument(0)));
         when(this.context.getServiceReferences(nullable(String.class), nullable(String.class)))
                 .thenAnswer(i -> findReferences(i.getArgument(0), i.getArgument(1)));
@@ -119,6 +120,7 @@ abstract class RestGraphFixture {
         this.graph.start();
 
         WireRestService endpoint = new WireRestService();
+        this.endpoint = endpoint;
         ComponentContext componentContext = mock(ComponentContext.class);
         when(componentContext.getBundleContext()).thenReturn(this.context);
         endpoint.activate(componentContext);
@@ -143,7 +145,7 @@ abstract class RestGraphFixture {
     }
 
     @AfterEach
-    void closeFixture() { this.graph.stop(); }
+    protected void closeFixture() { this.graph.stop(); }
 
     private ServiceReference<?>[] findReferences(String type, String expression) throws Exception {
         if (ServiceComponentRuntime.class.getName().equals(type)) {
@@ -227,12 +229,17 @@ abstract class RestGraphFixture {
     protected record MethodSpec(String method, String... alternative) { }
     protected void whenRequestIsPerformed(MethodSpec method, String path) { whenRequestIsPerformed(method, path, null); }
     protected void whenRequestIsPerformed(MethodSpec method, String path, String body) {
+        this.response = performRequest(method, path, body);
+    }
+
+    /** Override only the transport; retain the same graph setup and semantic assertions. */
+    protected KuraMessage performRequest(MethodSpec method, String path, String body) {
         KuraPayload payload = new KuraPayload();
         if (body != null) { payload.setBody(body.getBytes(StandardCharsets.UTF_8)); }
         KuraMessage request = new KuraMessage(payload);
         request.getProperties().put(ARGS_KEY.value(), Arrays.asList(path.substring(1).split("/")));
         try {
-            this.response = switch (method.method()) {
+            return switch (method.method()) {
             case "GET" -> this.proxy.doGet(null, request);
             case "PUT" -> this.proxy.doPut(null, request);
             case "POST" -> this.proxy.doPost(null, request);
