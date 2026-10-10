@@ -266,12 +266,12 @@ public class ChannelDescriptorTestDriver implements Driver, ConfigurableComponen
         }
 
         public AdBuilder withMin(final String min) {
-            this.max = Optional.of(min);
+            this.min = Optional.of(min);
             return this;
         }
 
         public AdBuilder withoutMin() {
-            this.max = Optional.empty();
+            this.min = Optional.empty();
             return this;
         }
 

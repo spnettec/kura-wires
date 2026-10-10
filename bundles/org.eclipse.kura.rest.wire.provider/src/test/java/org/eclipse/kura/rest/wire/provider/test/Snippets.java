@@ -233,6 +233,7 @@ public class Snippets {
             + "                    \"id\": \"STRING.prop.min.max\",\n" //
             + "                    \"type\": \"STRING\",\n" //
             + "                    \"cardinality\": 0,\n" //
+            + "                    \"min\": \"foo\",\n" //
             + "                    \"max\": \"bar\",\n" //
             + "                    \"defaultValue\": \"foo\",\n" //
             + "                    \"isRequired\": true\n" //
@@ -277,6 +278,7 @@ public class Snippets {
             + "                    \"id\": \"BYTE.prop.min.max\",\n" //
             + "                    \"type\": \"BYTE\",\n" //
             + "                    \"cardinality\": 0,\n" //
+            + "                    \"min\": \"10\",\n" //
             + "                    \"max\": \"20\",\n" //
             + "                    \"defaultValue\": \"15\",\n" //
             + "                    \"isRequired\": true\n" //
@@ -304,6 +306,7 @@ public class Snippets {
             + "                    \"id\": \"CHAR.prop.min.max\",\n" //
             + "                    \"type\": \"CHAR\",\n" //
             + "                    \"cardinality\": 0,\n" //
+            + "                    \"min\": \"b\",\n" //
             + "                    \"max\": \"l\",\n" //
             + "                    \"defaultValue\": \"c\",\n" //
             + "                    \"isRequired\": true\n" //
@@ -331,6 +334,7 @@ public class Snippets {
             + "                    \"id\": \"DOUBLE.prop.min.max\",\n" //
             + "                    \"type\": \"DOUBLE\",\n" //
             + "                    \"cardinality\": 0,\n" //
+            + "                    \"min\": \"13.5\",\n" //
             + "                    \"max\": \"20.5\",\n" //
             + "                    \"defaultValue\": \"16\",\n" //
             + "                    \"isRequired\": true\n" //
@@ -358,6 +362,7 @@ public class Snippets {
             + "                    \"id\": \"FLOAT.prop.min.max\",\n" //
             + "                    \"type\": \"FLOAT\",\n" //
             + "                    \"cardinality\": 0,\n" //
+            + "                    \"min\": \"13.5\",\n" //
             + "                    \"max\": \"20.5\",\n" //
             + "                    \"defaultValue\": \"16\",\n" //
             + "                    \"isRequired\": true\n" //
@@ -385,6 +390,7 @@ public class Snippets {
             + "                    \"id\": \"INTEGER.prop.min.max\",\n" //
             + "                    \"type\": \"INTEGER\",\n" //
             + "                    \"cardinality\": 0,\n" //
+            + "                    \"min\": \"-200000\",\n" //
             + "                    \"max\": \"300000\",\n" //
             + "                    \"defaultValue\": \"10\",\n" //
             + "                    \"isRequired\": true\n" //
@@ -412,6 +418,7 @@ public class Snippets {
             + "                    \"id\": \"LONG.prop.min.max\",\n" //
             + "                    \"type\": \"LONG\",\n" //
             + "                    \"cardinality\": 0,\n" //
+            + "                    \"min\": \"-2147493648\",\n" //
             + "                    \"max\": \"2147493647\",\n" //
             + "                    \"defaultValue\": \"2\",\n" //
             + "                    \"isRequired\": true\n" //
@@ -439,6 +446,7 @@ public class Snippets {
             + "                    \"id\": \"SHORT.prop.min.max\",\n" //
             + "                    \"type\": \"SHORT\",\n" //
             + "                    \"cardinality\": 0,\n" //
+            + "                    \"min\": \"-20000\",\n" //
             + "                    \"max\": \"20000\",\n" //
             + "                    \"defaultValue\": \"1\",\n" //
             + "                    \"isRequired\": true\n" //
