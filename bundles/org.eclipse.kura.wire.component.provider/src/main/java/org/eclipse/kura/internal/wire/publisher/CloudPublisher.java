@@ -32,7 +32,8 @@ import org.eclipse.kura.cloudconnection.message.KuraMessage;
 import org.eclipse.kura.configuration.ConfigurableComponent;
 import org.eclipse.kura.message.KuraPayload;
 import org.eclipse.kura.message.KuraPosition;
-import org.eclipse.kura.position.NmeaPosition;
+import org.osgi.util.measurement.Measurement;
+import org.osgi.util.position.Position;
 import org.eclipse.kura.position.PositionService;
 import org.eclipse.kura.type.ByteArrayValue;
 import org.eclipse.kura.type.StringValue;
@@ -203,7 +204,9 @@ public final class CloudPublisher implements WireReceiver, ConfigurableComponent
 
         if (this.cloudPublisherOptions.getPositionType() != PositionType.NONE) {
             KuraPosition kuraPosition = getPosition();
-            kuraPayload.setPosition(kuraPosition);
+            if (kuraPosition != null) {
+                kuraPayload.setPosition(kuraPosition);
+            }
         }
 
         final Map<String, TypedValue<?>> wireRecordProperties = wireRecord.getProperties();
@@ -247,21 +250,32 @@ public final class CloudPublisher implements WireReceiver, ConfigurableComponent
     }
 
     private KuraPosition getPosition() {
-        NmeaPosition position = this.positionService.getNmeaPosition();
+        if (this.positionService == null) {
+            logger.debug("Position Service is not available, cannot enrich message with position information.");
+            return null;
+        }
+
+        Position position = this.positionService.getPosition();
+        if (position == null) {
+            logger.debug("Position is not available, cannot enrich message with position information.");
+            return null;
+        }
 
         KuraPosition kuraPosition = new KuraPosition();
-        kuraPosition.setAltitude(position.getAltitude());
-        kuraPosition.setLatitude(position.getLatitude());
-        kuraPosition.setLongitude(position.getLongitude());
+        valueOf(position.getAltitude()).ifPresent(kuraPosition::setAltitude);
+        valueOf(position.getLatitude()).map(Math::toDegrees).ifPresent(kuraPosition::setLatitude);
+        valueOf(position.getLongitude()).map(Math::toDegrees).ifPresent(kuraPosition::setLongitude);
 
         if (this.cloudPublisherOptions.getPositionType() == PositionType.FULL) {
-            kuraPosition.setHeading(position.getTrack());
-            kuraPosition.setPrecision(position.getDOP());
-            kuraPosition.setSpeed(position.getSpeed());
-            kuraPosition.setSatellites(position.getNrSatellites());
+            valueOf(position.getTrack()).map(Math::toDegrees).ifPresent(kuraPosition::setHeading);
+            valueOf(position.getSpeed()).ifPresent(kuraPosition::setSpeed);
         }
 
         return kuraPosition;
+    }
+
+    private static Optional<Double> valueOf(Measurement measurement) {
+        return Optional.ofNullable(measurement).map(Measurement::getValue);
     }
 
     /**

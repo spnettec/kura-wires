@@ -32,7 +32,9 @@ import org.eclipse.kura.cloudconnection.listener.CloudDeliveryListener;
 import org.eclipse.kura.cloudconnection.message.KuraMessage;
 import org.eclipse.kura.message.KuraPayload;
 import org.eclipse.kura.message.KuraPosition;
-import org.eclipse.kura.position.NmeaPosition;
+import org.osgi.util.measurement.Measurement;
+import org.osgi.util.measurement.Unit;
+import org.osgi.util.position.Position;
 import org.eclipse.kura.position.PositionService;
 import org.eclipse.kura.type.StringValue;
 import org.eclipse.kura.type.TypedValue;
@@ -307,8 +309,9 @@ public class CloudPublisherTest {
     }
 
     private void whenSetPositionServiceMock() throws NoSuchFieldException {
-        when(this.positionServiceMock.getNmeaPosition())
-                .thenReturn(new NmeaPosition(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+        when(this.positionServiceMock.getPosition())
+                .thenReturn(new Position(new Measurement(0.0, Unit.rad), new Measurement(0.0, Unit.rad),
+                        new Measurement(0.0, Unit.m), new Measurement(0.0, Unit.m_s), new Measurement(0.0, Unit.rad)));
         this.cp.setPositionService(this.positionServiceMock);
     }
 
@@ -386,9 +389,10 @@ public class CloudPublisherTest {
         assertNotNull(this.position.getLatitude());
         assertNotNull(this.position.getLongitude());
         assertNotNull(this.position.getHeading());
-        assertNotNull(this.position.getPrecision());
+        // DOP precision and satellite count are no longer available from org.osgi.util.position.Position
+        assertNull(this.position.getPrecision());
         assertNotNull(this.position.getSpeed());
-        assertNotNull(this.position.getSatellites());
+        assertNull(this.position.getSatellites());
     }
     /*
      * Utilities
