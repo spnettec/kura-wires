@@ -11,22 +11,16 @@
      Eurotech
      YOFC
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>org.eclipse.kura</groupId>
         <artifactId>kura-wires.parent</artifactId>
         <version>3.0.0-SNAPSHOT</version>
         <relativePath>../bundles/pom.xml</relativePath>
     </parent>
-
     <artifactId>kura-wires.distrib</artifactId>
     <packaging>pom</packaging>
-
     <!-- wireadmin is pulled from P2 via antrun, not Maven dependency -->
     <dependencies>
         <dependency>
@@ -95,12 +89,10 @@
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
-
     <properties>
         <addon.installation.dir.3s>/opt/eclipse/kura/siblings/wires/3s</addon.installation.dir.3s>
         <addon.installation.dir.4s>/opt/eclipse/kura/siblings/wires/4s</addon.installation.dir.4s>
         <addon.installation.dir.6s>/opt/eclipse/kura/siblings/wires/6s</addon.installation.dir.6s>
-
         <equinox.wireadmin.version>1.0.800</equinox.wireadmin.version>
         <jar.equinox.wireadmin.name>org.eclipse.equinox.wireadmin-${equinox.wireadmin.version}.jar</jar.equinox.wireadmin.name>
         <jar.asset.cloudlet.provider.name>org.eclipse.kura.asset.cloudlet.provider-${project.version}.jar</jar.asset.cloudlet.provider.name>
@@ -116,7 +108,6 @@
         <jar.wire.script.tools.name>org.eclipse.kura.wire.script.tools-${project.version}.jar</jar.wire.script.tools.name>
         <jar.script.provider.name>org.eclipse.kura.script.provider-1.0.0-SNAPSHOT.jar</jar.script.provider.name>
         <jar.rest.wire.provider.name>org.eclipse.kura.rest.wire.provider-${project.version}.jar</jar.rest.wire.provider.name>
-
         <deb.architecture>all</deb.architecture>
         <package.name>kura-wires</package.name>
         <kura.repo.distribution>kura-6</kura.repo.distribution>
@@ -124,7 +115,6 @@
         <summary>YOFC SMART IOT EDGE GATEWAY - Kura Wires and Assets addon</summary>
         <long.description>The YOFC SMART IOT EDGE GATEWAY Kura Wires and Assets addon provides the bundles for the Wires and Assets features.</long.description>
     </properties>
-
     <profiles>
         <profile>
             <id>debugBuild</id>
@@ -178,7 +168,6 @@
             </build>
         </profile>
     </profiles>
-
     <build>
         <plugins>
             <plugin>
@@ -195,13 +184,12 @@
                             <name>release.version</name>
                             <value>${project.version}</value>
                             <regex>-SNAPSHOT</regex>
-                            <replacement></replacement>
+                            <replacement />
                             <failIfNoMatch>false</failIfNoMatch>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>io.github.git-commit-id</groupId>
                 <artifactId>git-commit-id-maven-plugin</artifactId>
@@ -224,7 +212,6 @@
                     </includeOnlyProperties>
                 </configuration>
             </plugin>
-
             <!-- Download wireadmin from Eclipse P2 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -239,17 +226,13 @@
                         </goals>
                         <configuration>
                             <target>
-                                <mkdir dir="${project.build.directory}/plugins"/>
-                                <get src="https://repo1.maven.org/maven2/org/eclipse/platform/org.eclipse.equinox.wireadmin/1.0.800/org.eclipse.equinox.wireadmin-1.0.800.jar"
-                                     dest="${project.build.directory}/plugins/${jar.equinox.wireadmin.name}"
-                                     usetimestamp="true"
-                                     verbose="true"/>
+                                <mkdir dir="${project.build.directory}/plugins" />
+                                <get src="https://repo1.maven.org/maven2/org/eclipse/platform/org.eclipse.equinox.wireadmin/1.0.800/org.eclipse.equinox.wireadmin-1.0.800.jar" dest="${project.build.directory}/plugins/${jar.equinox.wireadmin.name}" usetimestamp="true" verbose="true" />
                             </target>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
@@ -268,7 +251,6 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.vafer</groupId>
                 <artifactId>jdeb</artifactId>
@@ -473,3 +455,4 @@
         </plugins>
     </build>
 </project>
+
