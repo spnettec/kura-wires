@@ -172,6 +172,44 @@ public class CloudPublisherTest {
     }
 
     @Test
+    public void convertsOsgiPositionMeasurementsToKuraUnits() throws Exception {
+        givenCloudPublisher();
+        givenDefaultProperties();
+        givenUpdatedProperties("publish.position", "full");
+        givenActivatedComponentProperties();
+        givenPositionServiceMock();
+        givenDefaultRecordProp();
+        whenSetPositionServiceMock();
+        when(this.positionServiceMock.getPosition()).thenReturn(new Position(
+                new Measurement(Math.toRadians(45.5), Unit.rad),
+                new Measurement(Math.toRadians(9.25), Unit.rad), new Measurement(120.0, Unit.m),
+                new Measurement(3.5, Unit.m_s), new Measurement(Math.toRadians(90.0), Unit.rad)));
+        whenOnWireReceive();
+        whenKuraMessageReceived();
+        assertEquals(45.5, this.position.getLatitude(), 1e-9);
+        assertEquals(9.25, this.position.getLongitude(), 1e-9);
+        assertEquals(120.0, this.position.getAltitude(), 1e-9);
+        assertEquals(3.5, this.position.getSpeed(), 1e-9);
+        assertEquals(90.0, this.position.getHeading(), 1e-9);
+    }
+
+    @Test
+    public void publishesWithoutPositionWhenPositionIsUnavailable() throws Exception {
+        givenCloudPublisher();
+        givenDefaultProperties();
+        givenUpdatedProperties("publish.position", "full");
+        givenActivatedComponentProperties();
+        givenPositionServiceMock();
+        givenDefaultRecordProp();
+        whenSetPositionServiceMock();
+        when(this.positionServiceMock.getPosition()).thenReturn(null);
+        whenOnWireReceive();
+        whenKuraMessageReceived();
+        thenPayloadHasNullPosition();
+        thenCheckDefaultMetricReceived();
+    }
+
+    @Test
     public void testTopicReplacementOnWireReceive() throws InvalidSyntaxException {
         // test publishing a normal message with topic replacement
         givenCloudPublisher();
